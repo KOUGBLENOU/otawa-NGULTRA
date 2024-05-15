@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cache-config>
+	<!-- DOCUMENTATION
+		Arm® Cortex®-R52 Processor
+			Revision: r1p4
+			Technical Reference Manual
+			
+			Section 7.3
+	-->
+	
+	<dcache> 
+		<block_bits>5</block_bits>
+		<way_bits>2</way_bits>
+		<row_bits>8</row_bits>
+	</dcache>
+	
+	<icache>
+		<block_bits>5</block_bits>
+		<way_bits>2</way_bits>
+		<row_bits>8</row_bits>
+	</icache>
+</cache-config>
