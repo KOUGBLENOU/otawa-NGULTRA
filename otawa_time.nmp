@@ -1,0 +1,197 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// This file has been written following the official documentations :
+// -> Arm® Cortex®-R52 Processor Revision: r1p4 Technical Reference Manual
+//	Section B. Cycle Timings and Interlock Behavior
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+canon int(32) "R52F_time_int_single_cyle"
+canon int(32) "R52F_time_int_single_cyle_PC"
+canon int(32) "R52F_time_int_branch"
+canon int(32) "R52F_time_int_ld"
+canon int(32) "R52F_time_int_ldm"
+canon int(32) "R52F_time_int_ld_to_pc"
+canon int(32) "R52F_time_int_st_to_pc"
+canon int(32) "R52F_time_int_stm"
+canon int(32) "R52F_time_int_st"
+canon int(32) "R52F_time_int_lsx"
+canon int(32) "R52F_time_int_msr"
+canon int(32) "R52F_time_int_pop"
+canon int(32) "R52F_time_int_push"
+canon int(32) "R52F_time_int_MCR"
+canon int(32) "R52F_time_int_pldx"
+canon int(32) "R52F_time_int_s_udiv"
+canon int(32) "R52F_time_fpu_simd_ldm"
+canon int(32) "R52F_time_fpu_simd_single_cyle"
+canon int(32) "R52F_time_fpu_simd_ld"
+canon int(32) "R52F_time_fpu_simd_pop_push"
+canon int(32) "R52F_time_fpu_simd_stm"
+canon int(32) "R52F_time_fpu_simd_st"
+
+macro time(x) = "SET_TIME"(x)
+////////////////////////////////////////////////////////////////////
+// ARM    
+extend  ADD_imm, ADD_shr, AND_shr, AND_imm, BIC_shr, BIC_imm, EOR_imm, EOR_shr, MOV_imm, MOVW_imm, MOV_shr, MOVT,
+        ORR_imm, ORR_shr, SBC_imm, SBC_shr
+    cortexR52F_time = {
+        if rd == 15 then
+            time("R52F_time_int_single_cyle_PC");
+        else
+            time("R52F_time_int_single_cyle");
+        endif;
+    }
+    
+extend  B_Cond, SWI, BX_ARM
+    cortexR52F_time = { time("R52F_time_int_branch"); }
+    
+extend  CMP_shr, CMP_imm, CMN_shr, CMN_imm, MUL, MLA, MLS, SMLAL, SMULL, SUB_imm, SUB_shr, TEQ_imm, TEQ_shr, TST_imm, TST_shr, UBFX
+    cortexR52F_time = { time("R52F_time_int_single_cyle"); }
+    
+extend LDM
+	cortexR52F_time = {
+		if reglist & (1 << 15) then
+			if "elm::ones"(reglist) > 1 then time("R52F_time_int_ldm"); else time("R52F_time_int_ld_to_pc"); endif;
+		else
+			if "elm::ones"(reglist) > 1 then time("R52F_time_int_ldm"); else time("R52F_time_int_ld"); endif;
+		endif;
+	}
+
+extend  LDRH_imm, LDRH_shr, LDRSH_imm, LDRSH_shr, LDR_imm, LDR_shr, LDRSB_imm, LDRSB_shr, LDRB_thumb, LDRSH_imm, LDRSH_shr
+	cortexR52F_time = { time("R52F_time_int_ld"); }
+    
+// extend  LDRSB_imm, LDRSB_shr, LDRB_thumb, LDRSH_imm, LDRSH_shr
+//     cortexR52F_time = { time("R52F_time_int_ld_tricycle"); }
+
+extend  LDREX_A1, LDREXB_A1, LDREXD_A1, LDREXH_A1
+    cortexR52F_time = { time("R52F_time_int_ld"); }
+    
+extend  MSR_imm, MSR_shr, MRS
+    cortexR52F_time = { time("R52F_time_int_msr"); }
+    
+extend  STM
+	cortexR52F_time = {
+		if "elm::ones"(reglist) > 1 then time("R52F_time_int_stm"); else time("R52F_time_int_st"); endif;
+	}
+    
+extend  STR_imm, STR_shr, STRH_shr, STRD_imm, STRD_reg_A1
+	cortexR52F_time = { time("R52F_time_int_st"); }
+
+//////////////////////////////////////////////////////////////////////
+// THUMB
+extend  ADC_thumb, AND_thumb, ASR_thumb, ADD_imm5_thumb, BIC_thumb, EOR_thumb, MOV_imm_thumb, MOV_shr2_thumb, MOV_shr_thumb,
+        MUL_thumb, MUL_thumb, NOP_thumb, NOP_thumb_jer, ORR_thumb, SBC_thumb, SUB_thumb
+    cortexR52F_time = { time("R52F_time_int_single_cyle"); }
+    
+extend  ADD_reg2_thumb
+    cortexR52F_time = { 
+        if rd == 7 then
+            time("R52F_time_int_single_cyle_PC"); 
+        else 
+            time("R52F_time_int_single_cyle");
+        endif;
+    }
+extend   B_thumb, BLX_thumb, BX_thumb
+    cortexR52F_time = { time("R52F_time_int_branch"); }
+    
+extend  CMP_shr2_thumb, CMP_imm_thumb, CMP_shr1_thumb, CMN_shr_thumb, CMP_imm_thumb, REV_thumb, REV16_thumb,
+        REVSH_thumb, SXTB_thumb
+    cortexR52F_time = { time("R52F_time_int_single_cyle"); }
+    
+extend  LDMIA_thumb
+    cortexR52F_time = {
+			if "elm::ones"(llist) > 1 then time("R52F_time_int_ldm"); else time("R52F_time_int_ld"); endif;
+	}
+
+extend  LDRH_thumb, LDRS_thumb, LDR_imm_thumb, LDR_imm2_thumb, LDR_imm3_thumb, LDR_shr_thumb,
+        LDR_imm_thumb, LDR_shr_thumb, LDR_imm2_thumb, LDR_imm3_thumb, LDR_imm_Thumb, LDR_reg_Thumb
+	cortexR52F_time = { time("R52F_time_int_ld"); }
+
+extend  POP_thumb
+    cortexR52F_time = { time("R52F_time_int_pop"); }
+    
+extend  PUSH_thumb
+    cortexR52F_time = { time("R52F_time_int_push"); }
+    
+extend  STR_reg_Thumb, STR_reg_Thumb_list, STR_imm_thumb, STRB_thumb, STRH_thumb, STR_shr_thumb, STR_imm2_thumb
+	cortexR52F_time = { time("R52F_time_int_st"); }
+    
+    
+////////////////////////////////////////////////////////////////////
+// THUMB2
+extend  ADC_imm_T1, ADC_reg_T2, ASR_thumb2, CMP_shr2_thumb, CMP_imm_thumb2, CMP_reg_thumb2, MCRR_MCRR2_thumb2,
+        MCRR_MCRR2_thumb2, MUL_T2, MLA_MUL_thumb2, PKHBT_PKHTB_thumb2, QADD16_thumb2, QADD8_thumb2, 
+        QADD_thumb2, QASX_thumb2, QSUB16_thumb2, QSUB8_thumb2, QSUB_thumb2, QSAX_thumb2, REV16_thumb2, REV_thumb2, REVSH_thumb2,
+        ROR_reg_thumb2, RSB_reg_thumb2, RSB_imm_T2, RSB_thumb2, SMLABB_SMULBB_thumb2, SMLAD_SMUAD_thumb2, SMLALBB_thumb2, SMLALD_thumb2,
+        SMLAL_thumb2, SMLAWB_SMULWB_thumb2, SMLSD_SMUSD_thumb2, SMLSLD_thumb2, SMMLA_SMMUL_thumb2, SMLSD_SMUSD_thumb2, SMLSLD_thumb2,
+        SSAT_SSAT16_thumb2, USAT_USAT16_thumb2, SSAT_SSAT16_thumb2, USAT_USAT16_thumb2,
+        SUB_imm_T3, SUB_imm_T4, SUB_reg_thumb2, SUB_imm_T3_thumb2, SUB_imm_T4_thumb2, SUB_reg_thumb2,
+        SXTAB16_SXTB16_thumb2, SXTAB_SXTB_thumb2, SXTAH_SXTH_thumb2, SXTAB16_SXTB16_thumb2, SXTAB_SXTB_thumb2, TBB_TBH, UBFX_T1,
+        UHASX_thumb2, UHSAX_thumb2, USAX_thumb2, UXTAH_UXTH_thumb2, UXTAB_T1, UXTAB16_UXTB16_thumb2, SXTAB16_SXTB16_thumb2, SXTAB_SXTB_thumb2,
+        SXTAH_SXTH_thumb2
+    cortexR52F_time = { time("R52F_time_int_single_cyle"); }
+    
+extend  ADD_imm_T3, ADD_imm_T4, ADD_reg_T3, AND_imm_T1, AND_reg_T2, ASR_reg_T2, BIC_imm_thumb2, BIC_reg_thumb2,
+        BFC_BFI_thumb2, EOR_imm_thumb2, EOR_reg_thumb2, EOR_imm_T1, MOV_ORR_imm_T2_thumb2, MOV_imm_T3_thumb2, MOV_ORR_reg_thumb2,
+        MVN_ORN_imm_thumb2, MVN_ORN_reg_thumb2, MOV_ORR_imm_T2_thumb2, SBC_imm_thumb2, SBC_reg_thumb2
+    cortexR52F_time = { 
+        if rd == 15 then
+            time("R52F_time_int_single_cyle_PC");
+        else
+            time("R52F_time_int_single_cyle");
+        endif;
+    }
+
+extend  BLX_imm_T2, BL_imm_T1, B_thumb2, CLZ_thumb2, EOR_thumb2, B_thumb_T2
+    cortexR52F_time = { time("R52F_time_int_branch"); }
+
+extend  LSL_reg_T2, LSR_thumb2
+    cortexR52F_time = { time("R52F_time_int_lsx"); }
+
+
+extend  LDM_T2
+    cortexR52F_time = {
+			if "elm::ones"(register_list) > 1 then time("R52F_time_int_ldm"); else time("R52F_time_int_ld"); endif;
+	}
+
+extend  STMDB_T1
+	cortexR52F_time = {
+		time("R52F_time_int_stm");
+	}
+
+extend  LDR_reg_T2, LDRD_imm_T1, Load_Store_dual_exclusive_table_branch_thumb2
+	cortexR52F_time = { time("R52F_time_int_st"); }
+    
+extend  LDREXB_T1, LDREXD_T1, LDREXH_T1, LDREX_T1, STREXB_T1, STREXD_T1, STREXH_T1, STREX_T1
+    cortexR52F_time = { time("R52F_time_int_ld"); }
+
+extend  MCR_MCR2_thumb2
+    cortexR52F_time = { time("R52F_time_int_MCR"); }
+    
+extend  PLD_PLDW_imm_T1, PLD_PLDW_imm_T2
+    cortexR52F_time = { time("R52F_time_int_pldx"); }
+    
+extend  SDIV_thumb2, UDIV_thumb2
+    cortexR52F_time = { time("R52F_time_int_s_udiv"); }
+////////////////////////////////////////////////////////////////////
+// FP
+extend  VADD_fp_A1_double, VADD_fp_A1_quad, VADD_fp_A2_32, VADD_fp_A2_64, VADD_fp_T1_double, VADD_fp_T1_quad, VADD_fp_T2_32, VADD_fp_T2_64, VCMP_VCMPE_64_T1, VCMP_VCMPE_32_T1, VCMP_VCMPE_64_T2, VCMP_VCMPE_32_T2, VCVT_arm_if_A1, VCVT_arm_ff_A1, VCVT_T1_float_int, VCVT_T1_float_fix, VCVT_T1_double_single, VNMLA_VNMLS_VNMUL_32_T2, VSUB_fp_A1, VSUB_fp_T1,
+        VDIV_A1_32, VDIV_T1_32, VMUL_fp_A1_double, VMUL_fp_A1_quad, VMUL_fp_A2_32, VMUL_fp_T2_32, VMUL_fp_T1_quad, VMUL_fp_T1_double,
+        VMLA_VMLS_fp_A1_double, VMLA_VMLS_fp_A1_quad, VMLA_VMLS_fp_A2_32, VMLA_VMLS_fp_T1_double, VMLA_VMLS_fp_T1_quad, VMLA_VMLS_fp_T2_32,
+        VSQRT_32_T1
+    cortexR52F_time = { time("R52F_time_fpu_simd_single_cyle"); }
+    
+extend  VLDM_arm_A1_01, VLDM_arm_A1_10, VLDM_arm_A2_01, VLDM_arm_A2_10, 
+        VLDMDB_thumb_T1_W1, VLDMDB_thumb_T2_W1, VLDMIA_thumb_T1_W1, VLDMIA_thumb_T2_W1, VLDMIA_thumb_T1_W0, VLDMIA_thumb_T2_W0 // all considered as 'vldm.f64'. TODO: add more precison
+    cortexR52F_time = { time("R52F_time_fpu_simd_ldm"); }
+    
+extend  VLDR_A1, VLDR_A2, VLDR_T1, VLDR_T2
+    cortexR52F_time = { time("R52F_time_fpu_simd_ld"); }
+    
+extend  VPOP_A1, VPOP_A2, VPUSH_T1, VPUSH_T2
+    cortexR52F_time = { time("R52F_time_fpu_simd_pop_push"); }
+
+extend  VSTM_A1_01, VSTM_A1_10, VSTM_A2_01, VSTM_A2_10
+    cortexR52F_time = { time("R52F_time_fpu_simd_stm"); } 
+ 
+extend  VSTR_T1, VSTR_T2, VSTR_A1, VSTR_A2
+    cortexR52F_time = { time("R52F_time_fpu_simd_st"); }

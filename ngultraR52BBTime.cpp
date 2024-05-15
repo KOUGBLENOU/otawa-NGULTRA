@@ -26,6 +26,47 @@
 #include <elm/io/FileOutput.h>
 #include <elm/data/Vector.h>
 
+typedef enum {
+	NOT_PREDICTED = 0, // The processor is always making a not-take prediction. If the instruction is unconditional or if it passes
+						// its condition code, the pipeline is flushed, add eight to the Cycles.
+	PREDICTED = 1, // The processor predicts the instruction. 
+					// No performance penalty occurs on a correct prediction
+	STOP = 2, // The performance penalty is similar to the Not Predicted case,
+				// therefore, add eight to the Cycles.
+	NOT_APPLICABLE = 3 
+} branch_behavior_t;
+ 
+typedef struct {
+	int ex_cost;
+	branch_behavior_t br_behavior;
+	bool unknown;
+} r52f_time_t;
+
+r52f_time_t R52F_time_int_single_cyle = {1, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_single_cyle_PC = {1, STOP, false};
+r52f_time_t R52F_time_int_branch = {1, PREDICTED, false};
+r52f_time_t R52F_time_int_ld = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_ldm = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_ld_to_pc = {3, STOP, false};
+r52f_time_t R52F_time_int_st_to_pc = {3, STOP, false};
+r52f_time_t R52F_time_int_stm = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_st = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_msr = {5, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_pop = {6, PREDICTED, false};
+r52f_time_t R52F_time_int_push = {6, PREDICTED, false};
+r52f_time_t R52F_time_int_lsx = {1, NOT_PREDICTED, false};
+r52f_time_t R52F_time_int_MCR = {6, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_pldx = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_s_udiv = {9, NOT_PREDICTED, false};
+r52f_time_t R52F_time_fpu_simd_ldm = {16, NOT_PREDICTED, false};
+r52f_time_t R52F_time_fpu_simd_single_cyle = {1, NOT_PREDICTED, false};
+r52f_time_t R52F_time_fpu_simd_ld = {4, NOT_PREDICTED, false};
+r52f_time_t R52F_time_fpu_simd_pop_push = {16, NOT_PREDICTED, false};
+r52f_time_t R52F_time_fpu_simd_stm = {16, NOT_PREDICTED, false};
+r52f_time_t R52F_time_fpu_simd_st = {5, NOT_PREDICTED, false};
+r52f_time_t R52F_time_unknown = {10, STOP, true};
+#include "armCortexR52F_time.h"
+
 namespace otawa { namespace ultra {
     using namespace elm::io;
 	extern p::id<bool> WRITE_LOG;
