@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<memory
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+
+    <!-- DOCUMENTATION
+        NG-ULTRA
+        NX2H540ATSC
+        PS User Manual
+        Ver 0.3
+        June 2023
+	-->
+
+    <banks>
+        <xsl:choose>
+            <xsl:when test="$isCore0=1">
+                <bank>
+                    <name>OC_eROM</name> <!-- latency values could not be found in official doc -->
+                    <address><offset>0x00000000</offset></address>
+                    <size>0x20000</size> <!-- 128 Kbytes -->
+                    <type>ROM</type>
+                                        
+                    <on_chip>true</on_chip>
+                    <writable>true</writable>
+                    <write_latency>50</write_latency>
+                    <read_latency>50</read_latency>
+                    <latency>50</latency>
+                </bank>
+                
+                <bank>
+                    <name>TCM_Core_0</name>
+                    <address><offset>0x1000000</offset></address>
+                    <size>0x1000000</size> <!-- 16 Mbytes -->
+                    <type>SPM</type>
+                    <on_chip>true</on_chip>
+                    <writable>true</writable>
+                    <write_latency>1</write_latency>
+                    <read_latency>1</read_latency>
+                    <latency>1</latency>
+                </bank>
+            </xsl:when>
+            <xsl:otherwise>
+                <bank>
+                    <name>ATCM</name>
+                    <address><offset>0x00000000</offset></address>
+                    <size>0x20000</size> <!-- 128 Kbytes -->
+                    <type>SPM</type>
+                                        
+                    <on_chip>true</on_chip>
+                    <writable>true</writable>
+                    <write_latency>1</write_latency>
+                    <read_latency>1</read_latency>
+                    <latency>1</latency>
+                </bank>
+                
+                <bank>
+                    <name>TCM_Core_1</name>
+                    <address><offset>0x2000000</offset></address>
+                    <size>0x1000000</size> <!-- 16 Mbytes -->
+                    <type>SPM</type>
+                    <on_chip>true</on_chip>
+                    <writable>true</writable>
+                    <write_latency>1</write_latency>
+                    <read_latency>1</read_latency>
+                    <latency>1</latency>
+                </bank>
+            </xsl:otherwise> 
+        </xsl:choose>
+        
+        <bank>
+            <name>OC_eRAM</name> <!-- latency values could not be found in official doc -->
+            <address><offset>0x3000000</offset></address>
+            <size>0x200000</size> <!-- 2 Mbytes -->
+            <type>DRAM</type>
+            <on_chip>true</on_chip>
+            <writable>true</writable>
+            <write_latency>50</write_latency>
+            <read_latency>50</read_latency>
+            <latency>50</latency>
+        </bank>
+        <bank>
+            <name>IOs</name> <!-- latency values could not be found in official doc -->
+            <address><offset>0x0007FFF000</offset></address>
+            <size>0x5709000</size>
+            <type>IO</type>
+            <on_chip>false</on_chip>
+            <writable>true</writable>
+            <write_latency>100</write_latency>
+            <read_latency>100</read_latency>
+            <latency>100</latency>
+        </bank>
+    </banks>
+</memory>
