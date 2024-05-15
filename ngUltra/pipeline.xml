@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<processor class="otawa::hard::Processor"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+	
+	<!-- DOCUMENTATION
+		Arm® Cortex®-R52 Processor
+			Revision: r1p4
+			Technical Reference Manual
+			
+			Section B.1.1
+	-->
+	<arch>armv8-r</arch>
+	<model></model>
+	<stages>
+		<stage id="FE">
+			<name>PreFetch</name>
+			<type>FETCH</type>
+			<width>2</width>
+		</stage>
+		<stage id="DE">
+			<name>Decode</name>
+			<type>LAZY</type>
+			<width>2</width>
+		</stage>
+        <stage id="ISS">
+			<name>Issue</name>
+			<type>LAZY</type>
+			<width>2</width>
+		</stage>
+		<stage id="EXE">
+			<name>EXE</name>
+			<type>EXEC</type>
+			<fus>
+				<fu id="FPU_SIMD">
+					<name>FPU_SIMD</name>
+					<pipelined>true</pipelined>
+					<latency>5</latency>
+				</fu>
+				<fu id="INTEGER">
+					<name>INTEGER</name>
+					<pipelined>true</pipelined>
+					<latency>2</latency>
+				</fu>
+			</fus>
+			<dispatch>
+				<inst> <type>IS_FLOAT</type> <fu ref="FPU_SIMD"/> </inst>
+				<inst> <type></type> <fu ref="INTEGER"/> </inst>
+			</dispatch>
+		</stage> 
+
+		<stage id="WR">
+			<name>Write</name>
+			<type>COMMIT</type>
+			<width>1</width>
+			<mem>true</mem>
+		</stage>
+	</stages>
+</processor>
