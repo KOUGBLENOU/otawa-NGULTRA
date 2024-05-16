@@ -112,12 +112,12 @@ namespace otawa { namespace ultra {
 				r52f_time_t* inst_cycle_timing = getInstCycleTiming(inst->inst());
 				int cost = inst_cycle_timing->ex_cost;
 				if (inst->inst()->isMulti())
-					cost = (inst->inst()->multiCount() > 3) ? inst->inst()->multiCount() : 3;
+					cost = (inst->inst()->multiCount()/2 > 3) ? inst->inst()->multiCount()/2 : 3;
 				if (inst_cycle_timing->br_behavior & (STOP|NOT_PREDICTED))
 					cost += 8;
 				if (cost > 1) {
-                    inst->firstFUNode()->setLatency(cost / 2);
-					inst->lastFUNode()->setLatency(cost - (cost / 2));
+                    inst->firstFUNode()->setLatency(cost - (cost / 2));
+					inst->lastFUNode()->setLatency(cost / 2);
 				} else
 				    inst->lastFUNode()->setLatency(0);
 			}
