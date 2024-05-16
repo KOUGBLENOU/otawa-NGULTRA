@@ -27,13 +27,13 @@
 #include <elm/data/Vector.h>
 
 typedef enum {
-	NOT_PREDICTED = 0, // The processor is always making a not-take prediction. If the instruction is unconditional or if it passes
+	NOT_PREDICTED = 0x1, // The processor is always making a not-take prediction. If the instruction is unconditional or if it passes
 						// its condition code, the pipeline is flushed, add eight to the Cycles.
-	PREDICTED = 1, // The processor predicts the instruction. 
+	PREDICTED = 0x2, // The processor predicts the instruction. 
 					// No performance penalty occurs on a correct prediction
-	STOP = 2, // The performance penalty is similar to the Not Predicted case,
+	STOP = 0x4, // The performance penalty is similar to the Not Predicted case,
 				// therefore, add eight to the Cycles.
-	NOT_APPLICABLE = 3 
+	NOT_APPLICABLE = 0x8 
 } branch_behavior_t;
  
 typedef struct {
@@ -46,10 +46,10 @@ r52f_time_t R52F_time_int_single_cyle = {1, NOT_APPLICABLE, false};
 r52f_time_t R52F_time_int_single_cyle_PC = {1, STOP, false};
 r52f_time_t R52F_time_int_branch = {1, PREDICTED, false};
 r52f_time_t R52F_time_int_ld = {3, NOT_APPLICABLE, false};
-r52f_time_t R52F_time_int_ldm = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_ldm = {8, NOT_APPLICABLE, false};
 r52f_time_t R52F_time_int_ld_to_pc = {3, STOP, false};
 r52f_time_t R52F_time_int_st_to_pc = {3, STOP, false};
-r52f_time_t R52F_time_int_stm = {3, NOT_APPLICABLE, false};
+r52f_time_t R52F_time_int_stm = {8, NOT_APPLICABLE, false};
 r52f_time_t R52F_time_int_st = {3, NOT_APPLICABLE, false};
 r52f_time_t R52F_time_int_msr = {5, NOT_APPLICABLE, false};
 r52f_time_t R52F_time_int_pop = {6, PREDICTED, false};
@@ -103,6 +103,117 @@ namespace otawa { namespace ultra {
 			mem = hard::MEMORY_FEATURE.get(ws);
 			ASSERTP(mem, "Memory feature not found");
 		}
+		
+		void addEdgesForPipelineOrder() override {
+			ParExeGraph::addEdgesForPipelineOrder();
+			// Add latency penalty to Exec-FU nodes
+			for (InstIterator inst(this); inst(); inst++) {
+				// get cycle_time_info of inst
+				r52f_time_t* inst_cycle_timing = getInstCycleTiming(inst->inst());
+				int cost = inst_cycle_timing->ex_cost;
+				if (inst->inst()->isMulti())
+					cost = (inst->inst()->multiCount() > 3) ? inst->inst()->multiCount() : 3;
+				if (inst_cycle_timing->br_behavior & (STOP|NOT_PREDICTED))
+					cost += 8;
+				if (cost > 1) {
+                    inst->firstFUNode()->setLatency(cost / 2);
+					inst->lastFUNode()->setLatency(cost - (cost / 2));
+				} else
+				    inst->lastFUNode()->setLatency(0);
+			}
+		}
+		
+		void addEdgesForMemoryOrder() override {
+
+			// The datasheet does not give enough information about consecutive ld/st issuing.
+			// Although it explains that in some cases, two or more consecutive mem-instructions can not be dual-issued. 
+			// Here we consider the worst-case situation.
+			
+			// Call the default implementation
+			ParExeGraph::addEdgesForMemoryOrder();
+			
+			static string memory_order = "memory order";
+			auto stage = _microprocessor->execStage();
+
+			// looking in turn each FU
+			for (int i=0 ; i<stage->numFus() ; i++) {
+				ParExeStage* fu_stage = stage->fu(i)->firstStage();
+				ParExeNode* previous_load = nullptr;
+
+				// look for each node of this FU
+				for (int j=0 ; j<fu_stage->numNodes() ; j++){
+					ParExeNode* node = fu_stage->node(j);
+					// found a load instruction
+					if (node->inst()->inst()->isLoad()) {
+						// if any, add dependency on the previous load
+						if (previous_load)
+							new ParExeEdge(previous_load, node, ParExeEdge::SOLID, 0, memory_order);
+						
+						// current node becomes the new previous load
+						for (InstNodeIterator last_node(node->inst()); last_node() ; last_node++)
+							if (last_node->stage()->category() == ParExeStage::FU)
+								previous_load = *last_node;
+					}
+				}
+			}
+		}
+		
+		void addEdgesForDataDependencies() override {
+			string data_dep("");
+			ParExeStage* exec_stage = _microprocessor->execStage();
+			// for each functional unit
+			for (int j = 0; j < exec_stage->numFus(); j++) {
+				ParExeStage* fu_stage = exec_stage->fu(j)->firstStage();
+				
+				// for each stage in the functional unit
+				for (int k=0; k < fu_stage->numNodes(); k++) {
+					ParExeInst* inst = fu_stage->node(k)->inst();
+
+					// get cycle_time_info of the instruction
+					r52f_time_t* inst_cycle_timing = getInstCycleTiming(inst->inst());
+
+					ParExeNode* requiring_node = inst->firstFUNode();				
+					if (inst->inst()->kind() & Inst::IS_SHIFT)
+						requiring_node = findIssStage(inst);
+
+					// for each instruction producing a used data
+					for (ParExeInst::ProducingInstIterator prod(inst); prod(); prod ++) {
+						ParExeNode* producing_node = prod->lastFUNode();
+						if (prod->inst()->getKind().oneOf(Inst::IS_MUL | Inst::IS_MEM))
+							producing_node = findWrSstage(*prod);
+						// create the edge
+						if (producing_node != nullptr && requiring_node != nullptr) 
+							new ParExeEdge(producing_node, requiring_node, ParExeEdge::SOLID, 1, data_dep);
+					}
+				}
+			}
+		}
+		
+		/*
+			Write to the log file, some info about the instructions whose
+			cycle timing info has not been found.
+		*/
+		void dumpUnknowInst() {
+			if (_out == nullptr)
+				return;
+			for (InstIterator inst(this); inst(); inst++) {
+				if (!getInstCycleTiming(inst->inst())->unknown)
+					continue;
+				
+				auto addr = inst->inst()->address();
+				if (_unknown_inst_address->contains(addr))
+					continue;
+				_unknown_inst_address->add(addr);
+				*_out << addr << "; " << inst->inst() << endl;
+			}
+		}
+		
+		void removeSimdAndFloatWrLatencies() {
+			for (InstIterator inst(this); inst(); inst++) {
+				if (inst->lastFUNode()->name().startsWith("FPU_SIMD"))
+					findWrSstage(*inst)->setLatency(0);
+			}
+		}
 
 
 		void build(void) override {			
@@ -141,15 +252,15 @@ namespace otawa { namespace ultra {
 			
 
 			// Build the execution graph 
-			// createSequenceResources();
-			// createNodes();
-			// addEdgesForPipelineOrder();
-			// addEdgesForFetch();
-			// addEdgesForProgramOrder();
-			// addEdgesForMemoryOrder();
-			// addEdgesForDataDependencies();
-			// dumpUnknowInst();
-            ParExeGraph::build();
+			createSequenceResources();
+			createNodes();
+			addEdgesForPipelineOrder();
+			addEdgesForFetch();
+			addEdgesForProgramOrder();
+			addEdgesForMemoryOrder();
+			addEdgesForDataDependencies();
+			removeSimdAndFloatWrLatencies();
+			dumpUnknowInst();
 		}
 
 		
@@ -160,13 +271,23 @@ namespace otawa { namespace ultra {
 		ParExePipeline *exec_fpu_simd, *exec_int;
 		FileOutput* _out = nullptr;
 		elm::Vector<Address>* _unknown_inst_address = nullptr;
+		
+		
+		r52f_time_t* getInstCycleTiming(Inst* inst) {
+			void* inst_info = info->decode(inst);
+			r52f_time_t* inst_cycle_timing = ngUltraR52F(inst_info);
+			info->free(inst_info);
+			return inst_cycle_timing;
+		}
+
+		
 		/*
-			Find the Mem stage of an instruction.
+			Find the ISS stage of an instruction.
 			    inst: Concerned instruction.
 		*/
-		ParExeNode* findMemStage(ParExeInst* inst) {
+		ParExeNode* findIssStage(ParExeInst* inst) {
 			for (ParExeInst::NodeIterator node(inst); node(); node++) {
-					if (node->stage() == _microprocessor->memStage())
+					if (node->stage() == stage[ISS])
 						return *node;
 			}
 			return nullptr;
