@@ -1,0 +1,10 @@
+checksum "matmult.elf" 0x7d595471;
+
+// Function main (/home/kos/arm_benchmark/CortexR52/matmult.c:26)
+loop "main" + 0x48 10000 ; // 0x4c8 (/home/kos/arm_benchmark/CortexR52/matmult.c:33)
+
+// Function initMatrix (/home/kos/arm_benchmark/CortexR52/matmult.c:4)
+loop "initMatrix" + 0xb8 10 ; // 0x2f4 (/home/kos/arm_benchmark/CortexR52/matmult.c:7)
+	loop "initMatrix" + 0xa0 10 ; // 0x2dc (/home/kos/arm_benchmark/CortexR52/matmult.c:8)
+
+

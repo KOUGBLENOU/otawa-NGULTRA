@@ -75,3 +75,8 @@ install(FILES "${SCRIPT}.osx" DESTINATION "${SCRIPTDIR}")
 foreach(FILE ${FILES})
 	install(FILES ${CMAKE_SOURCE_DIR}/${FILE} DESTINATION "${SCRIPTDIR}/ngUltra")
 endforeach()
+
+# tests
+if(WITH_TEST)
+	add_subdirectory(test)
+endif()
