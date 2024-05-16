@@ -31,6 +31,7 @@
 		<stage id="EXE">
 			<name>EXE</name>
 			<type>EXEC</type>
+			<width>2</width>
 			<fus>
 				<fu id="FPU_SIMD">
 					<name>FPU_SIMD</name>
@@ -52,7 +53,7 @@
 		<stage id="WR">
 			<name>Write</name>
 			<type>COMMIT</type>
-			<width>1</width>
+			<width>2</width>
 			<mem>true</mem>
 		</stage>
 	</stages>
