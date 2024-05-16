@@ -8,12 +8,19 @@
 - otawa support for dcache mem : [otawa-dcache](https://github.com/statinf-otawa/otawa-dcache)
 
 ## Compilation
-```bash
-    cmake . && make install
-```
+    $ cmake . && make install
 
 ## Usage
-### For arm cortex M4
-```bash
-    owcet -s Ultra path/to/elf/file functionName [-p CONFIG=x]
-```
+    $ owcet -s Ultra path/to/elf/file functionName [-p CONFIG=x]
+    
+### Testing
+
+To enable testing,
+
+	$ cmake . -DWITH_TEST=yes
+    
+To launch a test,
+
+	$ cd test
+	$ make
+
