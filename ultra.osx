@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF8"?>
+<otawa-script
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+	
+	<!-- 	DOCUMENTATION
+		NG-ULTRA NX2H540ATSC PS User Manual Ver 0.3 June 2023
+	-->
+	
+	<!-- DESCRIPTION ::= -->
+		<name>NG Ultra</name>
+		<info>
+			<h1>NG-ULTRA NX2H540ATSC</h1>
+			<p>This script supports the WCET calculation for the NG-ULTRA's cortex R52 
+				as described below.</p>
+		</info>
+		<path to="ngUltra"/>
+
+		<!-- CONFIGURATION ::= -->
+		<configuration>
+			<item name="EPG" type="bool" default="false" label="Export the ParExeGraph">
+				<help>Export the Parametric Execution Graphes built during WCET computation. User will have to create a directory named ParExeGraph in the directory he calls owcet from. The graph will be saved in the directory. Please note that generating the graphs can take an enormous amount of time, even longer than calculating the WCET.
+				</help>
+			</item>
+	
+			<item name="LOG" type="bool" default="false" label="Write log file">
+				<help>By setting this to true, all warning messages occured during the execution of the feature ultra::BBTimerNGUltraR52 will be written into "program.log" file. "program" is the input binary file of owcet. 
+				</help>
+			</item>
+	
+			<item name="isCore0" type="bool" default="true" label="Core id">
+				<help>Select the type of core ID (0 or not).</help>
+			</item>
+		</configuration>
+		
+	<!-- IDENTIFICATION ::= -->
+		<id>
+			<abi>elf</abi>
+            <arch>armv8-r</arch>
+            <mach>NG-ULTRA NX2H540ATSC, Arm cortex R52</mach>
+		</id>
+	
+	<!-- PLATFORM ::= -->
+	<platform>
+		<xi:include href="ngUltra/pipeline.xml"/>
+        <xi:include href="ngUltra/cache.xml"/>
+        <xi:include href="ngUltra/memory.xml"/>
+        <xi:include href="ngUltra/bht.xml"/>
+	</platform>
+
+	<!-- SCRIPT ::= -->
+	<script>
+
+        <xsl:if test="$EPG!=0">
+            <config name="otawa::GRAPHS_OUTPUT_DIRECTORY" value="ParExeGraph"/>
+        </xsl:if>
+        <config name="otawa::ultra::WRITE_LOG" value="{$LOG}"/>
+        <config name="otawa::ipet::EXPLICIT" value="true"/>
+
+        <step processor="otawa::Virtualizer"/>
+
+        <step require="otawa::ICACHE_CATEGORY2_FEATURE"/>
+        <step processor="otawa::ultra::PrefetchEventBuilder"/>
+
+        <step require="otawa::hard::BHT_FEATURE"/>
+
+        <step require="otawa::dcache::CLP_ACCESS_FEATURE"/>
+        <step require="otawa::dcache::MAY_FEATURE"/>
+        <step require="otawa::dcache::PERS_FEATURE"/>
+        <step require="otawa::dcache::MUST_FEATURE"/>
+        <step require="otawa::dcache::MULTI_PERS_FEATURE"/>
+        <step require="otawa::dcache::CATEGORY_FEATURE"/>
+        <step require="otawa::dcache::EVENTS_FEATURE"/>
+        <step processor="otawa::ultra::BBTimerNGUltraR52"/>            
+        <step require="otawa::ipet::WCET_FEATURE"/>	
+
+	</script>
+</otawa-script>
