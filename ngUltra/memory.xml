@@ -86,9 +86,9 @@
             <type>IO</type>
             <on_chip>false</on_chip>
             <writable>true</writable>
-            <write_latency>100</write_latency>
-            <read_latency>100</read_latency>
-            <latency>100</latency>
+            <write_latency>200</write_latency>
+            <read_latency>200</read_latency>
+            <latency>200</latency>
         </bank>
     </banks>
 </memory>
